@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 import { runAgentLoop } from "./agent/loop.js";
-import { AnthropicMessagesClient, EchoModelClient } from "./agent/model.js";
-import { createTools } from "./tools/index.js";
-import { Workspace } from "./workspace/workspace.js";
+import { bootstrap } from "./app/bootstrap.js";
 
 async function main(): Promise<void> {
   const prompt = process.argv.slice(2).join(" ").trim();
@@ -12,24 +10,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  const workspace = new Workspace(process.cwd());
-  const model = process.env.ANTHROPIC_API_KEY
-    ? new AnthropicMessagesClient(process.env.ANTHROPIC_API_KEY)
-    : new EchoModelClient();
-
-  const result = await runAgentLoop({
-    prompt,
-    model,
-    tools: createTools(workspace),
-    onToolCall(toolName) {
-      console.error(`tool: ${toolName}`);
-    },
-    onToolOutput(toolName, output) {
-      console.error(`tool output: ${toolName}`);
-      console.error(output);
-    }
-  });
-
+  const app = bootstrap();
+  const result = await runAgentLoop({ prompt, model: app.model, tools: app.tools, ...app.hooks });
   console.log(result);
 }
 
