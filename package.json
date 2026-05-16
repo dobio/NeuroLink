@@ -1,0 +1,22 @@
+{
+  "name": "neurolink-code-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "neurolink-agent": "./dist/src/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/**/*.test.js",
+    "dev": "npm run build && node dist/src/cli.js",
+    "debug": "node --inspect-brk --import tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.0"
+  }
+}
