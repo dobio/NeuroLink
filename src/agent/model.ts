@@ -29,8 +29,8 @@ interface AnthropicContentBlock {
 export class AnthropicMessagesClient implements ModelClient {
   constructor(
     private readonly apiKey: string,
-    private readonly model = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5",
-    private readonly baseUrl = process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com/v1"
+    private readonly model = "claude-sonnet-4-5",
+    private readonly baseUrl = "https://api.anthropic.com/v1"
   ) {}
 
   async next(messages: AgentMessage[], tools: Tool[]): Promise<ModelResult> {
