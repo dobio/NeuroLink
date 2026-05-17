@@ -7,7 +7,15 @@ export function createFileTools(workspace: Workspace): Tool[] {
   return [
     {
       name: "read_file",
-      description: "Read a UTF-8 text file inside the workspace. Input: { path }",
+      description: "Read a UTF-8 text file inside the workspace.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Workspace-relative file path to read." }
+        },
+        required: ["path"],
+        additionalProperties: false
+      },
       async execute(input) {
         const { path: filePath } = asObject(input);
         return workspace.readText(String(filePath));
@@ -15,7 +23,14 @@ export function createFileTools(workspace: Workspace): Tool[] {
     },
     {
       name: "list_files",
-      description: "List files inside the workspace. Input: { path? }",
+      description: "List files inside the workspace.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Optional workspace-relative directory path to list." }
+        },
+        additionalProperties: false
+      },
       async execute(input) {
         const requested = String(asObject(input).path ?? ".");
         const root = workspace.resolveInside(requested);
@@ -25,7 +40,15 @@ export function createFileTools(workspace: Workspace): Tool[] {
     },
     {
       name: "search_files",
-      description: "Search text files inside the workspace. Input: { query }",
+      description: "Search text files inside the workspace.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Literal text to search for in workspace files." }
+        },
+        required: ["query"],
+        additionalProperties: false
+      },
       async execute(input) {
         const query = String(asObject(input).query ?? "");
         if (!query) {

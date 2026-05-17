@@ -7,7 +7,15 @@ import type { Tool } from "./types.js";
 export function createShellTool(workspace: Workspace): Tool {
   return {
     name: "run_command",
-    description: "Run a shell command in the workspace after user confirmation. Input: { command }",
+    description: "Run a shell command in the workspace after user confirmation.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        command: { type: "string", description: "Shell command to run from the workspace root." }
+      },
+      required: ["command"],
+      additionalProperties: false
+    },
     async execute(inputValue) {
       const command = String(asObject(inputValue).command ?? "");
       if (!command) {

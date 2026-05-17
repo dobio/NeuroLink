@@ -1,5 +1,4 @@
-import type { ModelClient } from "./model.js";
-import type { AgentMessage } from "./types.js";
+import type { AgentMessage, ModelClient } from "./types.js";
 import type { Tool } from "../tools/types.js";
 
 export interface RunAgentLoopOptions {
@@ -23,16 +22,45 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<string
       return result.text;
     }
 
-    const tool = tools.get(result.toolName);
-    if (!tool) {
-      throw new Error(`Unknown tool: ${result.toolName}`);
+    const executableCalls = result.toolCalls.map((toolCall) => {
+      const tool = tools.get(toolCall.toolName);
+      if (!tool) {
+        throw new Error(`Unknown tool: ${toolCall.toolName}`);
+      }
+      return { toolCall, tool };
+    });
+
+    if (executableCalls.length === 0) {
+      throw new Error("Model returned no tool calls");
     }
 
-    options.onToolCall?.(result.toolName, result.input);
-    const output = await tool.execute(result.input);
-    options.onToolOutput?.(result.toolName, output);
-    messages.push({ role: "tool", content: output });
+    const thinkingContent = result.thinking?.map((t) => ({ type: "thinking" as const, thinking: t.thinking, signature: t.signature })) ?? [];
+    const assistantToolCalls = executableCalls.map(({ toolCall }, index) => ({
+      type: "tool_call" as const,
+      id: toolCall.id ?? fallbackToolCallId(step, index, executableCalls.length),
+      toolName: toolCall.toolName,
+      input: toolCall.input
+    }));
+    messages.push({
+      role: "assistant",
+      content: [...thinkingContent, ...assistantToolCalls]
+    });
+
+    for (const [index, { toolCall, tool }] of executableCalls.entries()) {
+      const toolCallId = assistantToolCalls[index]?.id ?? fallbackToolCallId(step, index, executableCalls.length);
+      options.onToolCall?.(toolCall.toolName, toolCall.input);
+      const output = await tool.execute(toolCall.input);
+      options.onToolOutput?.(toolCall.toolName, output);
+      messages.push({ role: "tool", toolCallId, toolName: toolCall.toolName, content: output });
+    }
   }
 
   throw new Error(`Agent stopped after ${maxSteps} tool steps`);
+}
+
+function fallbackToolCallId(step: number, index: number, total: number): string {
+  if (total === 1) {
+    return `tool_call_${step + 1}`;
+  }
+  return `tool_call_${step + 1}_${index + 1}`;
 }

@@ -1,5 +1,6 @@
-import { AnthropicMessagesClient, EchoModelClient } from "../agent/model.js";
-import type { ModelClient } from "../agent/model.js";
+import type { ModelClient } from "../agent/types.js";
+import { AnthropicMessagesClient } from "../providers/anthropic.js";
+import { EchoModelClient } from "../providers/echo.js";
 import { createTools } from "../tools/index.js";
 import type { Tool } from "../tools/types.js";
 import { Workspace } from "../workspace/workspace.js";
@@ -46,11 +47,13 @@ export function bootstrap(options: BootstrapOptions = {}): AppRuntime {
     tools,
     hooks: {
       onToolCall(toolName: string) {
-        console.error(`tool: ${toolName}`);
+        console.log('---')
+        console.log(`tool: ${toolName}`);
       },
       onToolOutput(toolName: string, output: string) {
-        console.error(`tool output: ${toolName}`);
-        console.error(output);
+        console.log(`tool output: ${toolName}`);
+        console.log(output);
+        console.log('---')
       }
     }
   };

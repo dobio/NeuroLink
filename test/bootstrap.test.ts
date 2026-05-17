@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { bootstrap } from "../src/app/bootstrap.js";
-import type { ModelClient } from "../src/agent/model.js";
+import type { ModelClient } from "../src/agent/types.js";
 import type { Tool } from "../src/tools/types.js";
 
 test("bootstrap wires workspace, tools, hooks, and anthropic model from env", () => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { runAgentLoop } from "../src/agent/loop.js";
-import type { ModelClient } from "../src/agent/model.js";
+import type { ModelClient } from "../src/agent/types.js";
 import type { Tool } from "../src/tools/types.js";
 
 test("agent loop executes requested tools until the model returns a final answer", async () => {
@@ -10,8 +10,19 @@ test("agent loop executes requested tools until the model returns a final answer
     async next(messages, tools) {
       if (messages.length === 1) {
         assert.equal(tools.length, 1);
-        return { type: "tool_call", toolName: "echo", input: { text: "hello" } };
+        return { type: "tool_calls", toolCalls: [{ toolName: "echo", input: { text: "hello" } }] };
       }
+
+      assert.deepEqual(messages[1], {
+        role: "assistant",
+        content: [{ type: "tool_call", id: "tool_call_1", toolName: "echo", input: { text: "hello" } }]
+      });
+      assert.deepEqual(messages[2], {
+        role: "tool",
+        toolCallId: "tool_call_1",
+        toolName: "echo",
+        content: "hello"
+      });
 
       return { type: "final", text: `done: ${messages.at(-1)?.content}` };
     }
@@ -41,7 +52,7 @@ test("agent loop reports tool output after execution", async () => {
   const model: ModelClient = {
     async next(messages) {
       if (messages.length === 1) {
-        return { type: "tool_call", toolName: "echo", input: { text: "hello" } };
+        return { type: "tool_calls", toolCalls: [{ toolName: "echo", input: { text: "hello" } }] };
       }
 
       return { type: "final", text: "done" };
@@ -66,4 +77,64 @@ test("agent loop reports tool output after execution", async () => {
   });
 
   assert.deepEqual(outputs, [{ toolName: "echo", output: "hello" }]);
+});
+
+test("agent loop executes every tool call returned in a single model step", async () => {
+  const calls: string[] = [];
+  const model: ModelClient = {
+    async next(messages) {
+      if (messages.length === 1) {
+        return {
+          type: "tool_calls",
+          toolCalls: [
+            { id: "toolu_a", toolName: "echo", input: { text: "alpha" } },
+            { id: "toolu_b", toolName: "echo", input: { text: "beta" } }
+          ],
+          thinking: [{ thinking: "read both values", signature: "sig123" }]
+        };
+      }
+
+      assert.deepEqual(messages[1], {
+        role: "assistant",
+        content: [
+          { type: "thinking", thinking: "read both values", signature: "sig123" },
+          { type: "tool_call", id: "toolu_a", toolName: "echo", input: { text: "alpha" } },
+          { type: "tool_call", id: "toolu_b", toolName: "echo", input: { text: "beta" } }
+        ]
+      });
+      assert.deepEqual(messages[2], {
+        role: "tool",
+        toolCallId: "toolu_a",
+        toolName: "echo",
+        content: "alpha"
+      });
+      assert.deepEqual(messages[3], {
+        role: "tool",
+        toolCallId: "toolu_b",
+        toolName: "echo",
+        content: "beta"
+      });
+
+      return { type: "final", text: "done" };
+    }
+  };
+  const echoTool: Tool = {
+    name: "echo",
+    description: "Echo text",
+    async execute(input) {
+      const text = String((input as { text: string }).text);
+      calls.push(text);
+      return text;
+    }
+  };
+
+  const result = await runAgentLoop({
+    prompt: "say hello",
+    model,
+    tools: [echoTool],
+    maxSteps: 3
+  });
+
+  assert.deepEqual(calls, ["alpha", "beta"]);
+  assert.equal(result, "done");
 });

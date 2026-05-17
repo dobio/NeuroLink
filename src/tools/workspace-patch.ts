@@ -5,7 +5,15 @@ import type { Tool } from "./types.js";
 export function createPatchTool(workspace: Workspace): Tool {
   return {
     name: "apply_patch",
-    description: "Apply a unified patch to existing files inside the workspace. Input: { patch }",
+    description: "Apply a unified patch to existing files inside the workspace.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        patch: { type: "string", description: "Unified diff patch to apply inside the workspace." }
+      },
+      required: ["patch"],
+      additionalProperties: false
+    },
     async execute(input) {
       const patch = String(asObject(input).patch ?? "");
       if (!patch) {
