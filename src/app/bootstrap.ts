@@ -20,6 +20,7 @@ export interface AppRuntime {
   model: ModelClient;
   tools: Tool[];
   hooks: {
+    onModelText(text: string): void;
     onToolCall(toolName: string): void;
     onToolOutput(toolName: string, output: string): void;
   };
@@ -46,6 +47,9 @@ export function bootstrap(options: BootstrapOptions = {}): AppRuntime {
     model,
     tools,
     hooks: {
+      onModelText(text: string) {
+        console.log(text);
+      },
       onToolCall(toolName: string) {
         console.log('---')
         console.log(`tool: ${toolName}`);

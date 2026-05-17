@@ -162,6 +162,11 @@ function fromAnthropicContent(content: AnthropicResponseContentBlock[]): ModelRe
     .filter((b) => b.type === "thinking" && typeof b.thinking === "string" && typeof b.signature === "string")
     .map((b) => ({ thinking: b.thinking as string, signature: b.signature as string }));
 
+  const outputText = content
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text)
+    .join("\n");
+
   const toolUses = content.filter((block) => block.type === "tool_use");
   if (toolUses.length > 0) {
     const toolCalls = toolUses.map((toolUse) => {
@@ -177,15 +182,12 @@ function fromAnthropicContent(content: AnthropicResponseContentBlock[]): ModelRe
 
     return {
       type: "tool_calls",
+      ...(outputText ? { text: outputText } : {}),
       toolCalls,
       ...(thinkingBlocks.length > 0 ? { thinking: thinkingBlocks } : {})
     };
   }
 
-  const outputText = content
-    .filter((block) => block.type === "text" && typeof block.text === "string")
-    .map((block) => block.text)
-    .join("\n");
   return { type: "final", text: outputText };
 }
 

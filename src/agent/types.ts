@@ -42,6 +42,7 @@ export type ModelResult =
     }
   | {
       type: "tool_calls";
+      text?: string;
       toolCalls: {
         id?: string;
         toolName: string;

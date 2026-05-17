@@ -6,6 +6,7 @@ export interface RunAgentLoopOptions {
   model: ModelClient;
   tools: Tool[];
   maxSteps?: number;
+  onModelText?: (text: string) => void;
   onToolCall?: (toolName: string, input: unknown) => void;
   onToolOutput?: (toolName: string, output: string) => void;
 }
@@ -34,7 +35,12 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<string
       throw new Error("Model returned no tool calls");
     }
 
+    if (result.text) {
+      options.onModelText?.(result.text);
+    }
+
     const thinkingContent = result.thinking?.map((t) => ({ type: "thinking" as const, thinking: t.thinking, signature: t.signature })) ?? [];
+    const textContent = result.text ? [{ type: "text" as const, text: result.text }] : [];
     const assistantToolCalls = executableCalls.map(({ toolCall }, index) => ({
       type: "tool_call" as const,
       id: toolCall.id ?? fallbackToolCallId(step, index, executableCalls.length),
@@ -43,7 +49,7 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<string
     }));
     messages.push({
       role: "assistant",
-      content: [...thinkingContent, ...assistantToolCalls]
+      content: [...thinkingContent, ...textContent, ...assistantToolCalls]
     });
 
     for (const [index, { toolCall, tool }] of executableCalls.entries()) {

@@ -159,6 +159,37 @@ test("AnthropicMessagesClient returns every Anthropic tool_use block", async (t)
   });
 });
 
+test("AnthropicMessagesClient preserves text alongside Anthropic tool_use blocks", async (t) => {
+  const originalFetch = globalThis.fetch;
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        content: [
+          { type: "thinking", thinking: "inspect the file first", signature: "sig_text_tool" },
+          { type: "text", text: "找到了 `xiaozuowen.md` 文件，让我先看看它目前的内容。" },
+          { type: "tool_use", id: "toolu_read", name: "read_file", input: { path: "xiaozuowen.md" } }
+        ]
+      }),
+      { status: 200 }
+    );
+
+  const client = new AnthropicMessagesClient("test-key", "test-model", "https://proxy.example.com");
+
+  const result = await client.next([{ role: "user", content: "读取小作文" }], []);
+
+  assert.deepEqual(result, {
+    type: "tool_calls",
+    text: "找到了 `xiaozuowen.md` 文件，让我先看看它目前的内容。",
+    toolCalls: [{ id: "toolu_read", toolName: "read_file", input: { path: "xiaozuowen.md" } }],
+    thinking: [{ thinking: "inspect the file first", signature: "sig_text_tool" }]
+  });
+});
+
 test("AnthropicMessagesClient groups consecutive tool results after multiple tool_use blocks", async (t) => {
   const originalFetch = globalThis.fetch;
   const requestedBodies: string[] = [];

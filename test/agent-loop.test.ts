@@ -138,3 +138,48 @@ test("agent loop executes every tool call returned in a single model step", asyn
   assert.deepEqual(calls, ["alpha", "beta"]);
   assert.equal(result, "done");
 });
+
+test("agent loop reports assistant text before executing tool calls", async () => {
+  const textOutputs: string[] = [];
+  const model: ModelClient = {
+    async next(messages) {
+      if (messages.length === 1) {
+        return {
+          type: "tool_calls",
+          text: "找到了 `xiaozuowen.md` 文件，让我先看看它目前的内容。",
+          toolCalls: [{ id: "toolu_read", toolName: "echo", input: { text: "content" } }]
+        };
+      }
+
+      assert.deepEqual(messages[1], {
+        role: "assistant",
+        content: [
+          { type: "text", text: "找到了 `xiaozuowen.md` 文件，让我先看看它目前的内容。" },
+          { type: "tool_call", id: "toolu_read", toolName: "echo", input: { text: "content" } }
+        ]
+      });
+
+      return { type: "final", text: "done" };
+    }
+  };
+  const echoTool: Tool = {
+    name: "echo",
+    description: "Echo text",
+    async execute(input) {
+      return String((input as { text: string }).text);
+    }
+  };
+
+  const result = await runAgentLoop({
+    prompt: "读取小作文",
+    model,
+    tools: [echoTool],
+    maxSteps: 3,
+    onModelText(text) {
+      textOutputs.push(text);
+    }
+  });
+
+  assert.deepEqual(textOutputs, ["找到了 `xiaozuowen.md` 文件，让我先看看它目前的内容。"]);
+  assert.equal(result, "done");
+});
