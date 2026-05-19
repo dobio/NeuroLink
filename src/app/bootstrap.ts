@@ -51,13 +51,9 @@ export function bootstrap(options: BootstrapOptions = {}): AppRuntime {
         console.log(text);
       },
       onToolCall(toolName: string) {
-        console.log('---')
         console.log(`tool: ${toolName}`);
       },
       onToolOutput(toolName: string, output: string) {
-        console.log(`tool output: ${toolName}`);
-        console.log(output);
-        console.log('---')
       }
     }
   };

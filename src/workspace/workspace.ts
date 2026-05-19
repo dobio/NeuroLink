@@ -30,4 +30,8 @@ export class Workspace {
     await fs.mkdir(path.dirname(resolved), { recursive: true });
     await fs.writeFile(resolved, content, "utf8");
   }
+
+  async deleteFile(inputPath: string): Promise<void> {
+    await fs.unlink(this.resolveInside(inputPath));
+  }
 }

@@ -43,7 +43,7 @@ ANTHROPIC_BASE_URL=https://proxy.example.com/anthropic/v1 ANTHROPIC_API_KEY=sk-a
 - `read_file`：读取工作区内的 UTF-8 文件。
 - `list_files`：列出文件，并排除 `.git`、`node_modules` 和 `dist`。
 - `search_files`：在工作区文件中执行纯文本搜索。
-- `apply_patch`：对已有文件应用小型 unified patch。
+- `apply_patch`：应用 Git 风格 unified diff，可修改、新增或删除工作区内文件。
 - `run_command`：在交互确认后运行 shell 命令。
 
 ## 安全

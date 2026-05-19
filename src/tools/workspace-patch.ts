@@ -23,16 +23,25 @@ export function createPatchTool(workspace: Workspace): Tool {
       const filePatches = parseUnifiedPatch(patch);
       const files = new Map<string, string>();
       for (const filePatch of filePatches) {
-        files.set(filePatch.path, await workspace.readText(filePatch.path));
+        if (filePatch.oldPath && !files.has(filePatch.oldPath)) {
+          files.set(filePatch.oldPath, await workspace.readText(filePatch.oldPath));
+        }
       }
 
-      applyUnifiedPatch(files, patch);
+      const result = applyUnifiedPatch(files, patch);
 
-      for (const [filePath, content] of files) {
+      for (const filePath of result.written) {
+        const content = files.get(filePath);
+        if (content === undefined) {
+          throw new Error(`Patch result is missing content for ${filePath}`);
+        }
         await workspace.writeText(filePath, content);
       }
+      for (const filePath of result.deleted) {
+        await workspace.deleteFile(filePath);
+      }
 
-      return `Applied patch to ${files.size} file(s)`;
+      return `Applied patch: wrote ${result.written.size} file(s), deleted ${result.deleted.size} file(s)`;
     }
   };
 }
